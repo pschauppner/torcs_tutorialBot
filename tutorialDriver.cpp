@@ -17,10 +17,13 @@
 
 #include "tutorialDriver.h"
 
+const float TutorialDriver::G = 9.81;
+
 const float TutorialDriver::MAX_UNSTUCK_ANGLE = 30.0/180.0*PI;  /* [radians] */
 const float TutorialDriver::UNSTUCK_TIME_LIMIT = 2.0;           /* [s] */
 const float TutorialDriver::MAX_UNSTUCK_SPEED = 5.0;
 const float TutorialDriver::MIN_UNSTUCK_DIST = 3.0;
+const float TutorialDriver::FULL_ACCEL_MARGIN = 1.0;
 
 TutorialDriver::TutorialDriver(int index)
 {
@@ -58,7 +61,7 @@ void TutorialDriver::drive(tCarElt* car, tSituation *s)
 
         car->ctrl.steer = steerangle / car->_steerLock;
         car->ctrl.gear = 1; // first gear
-        car->ctrl.accelCmd = 0.3; // 30% accelerator pedal
+        car->ctrl.accelCmd = getAccel(car); // 30% accelerator pedal
         car->ctrl.brakeCmd = 0.0; // no brakes
     }
 }
@@ -98,5 +101,32 @@ bool TutorialDriver::isStuck(tCarElt* car)
     else {
         stuckCounter = 0;
         return false;
+    }
+}
+
+float TutorialDriver::getAllowedSpeed(tTrackSeg* segment)
+{
+    if(segment->type == TR_STR)
+        return 1000000;
+    float mu = segment->surface->kFriction;
+    return sqrt(mu * G * segment->radius);
+}
+
+float TutorialDriver::getDistToSegEnd(tCarElt* car)
+{
+    if(car->_trkPos.seg->type == TR_STR)
+        return car->_trkPos.seg->length - car->_trkPos.toStart;
+    return (car->_trkPos.seg->arc - car->_trkPos.toStart) * car->_trkPos.seg->radius;
+}
+
+float TutorialDriver::getAccel(tCarElt* car)
+{
+    float allowedspeed = getAllowedSpeed(car->_trkPos.seg);
+    float gr = car->_gearRatio[car->_gear + car->_gearOffset];
+    float rm = car->_enginerpmRedLine;
+    if (allowedspeed > car->_speed_x + FULL_ACCEL_MARGIN) {
+        return 1.0;
+    } else {
+        return allowedspeed/car->_wheelRadius(REAR_RGT)*gr /rm;
     }
 }

@@ -46,6 +46,9 @@ class TutorialDriver {
         /* utility functions */
         bool isStuck(tCarElt* car);
         void update(tCarElt* car, tSituation *s);
+        float getAllowedSpeed(tTrackSeg* segment);
+        float getDistToSegEnd(tCarElt* car);
+        float getAccel(tCarElt* car);
 
         /* per robot global data */
         int stuckCounter;
@@ -57,10 +60,12 @@ class TutorialDriver {
         int INDEX;
 
         /* class constants */
+        static const float G;
         static const float MAX_UNSTUCK_ANGLE;
         static const float UNSTUCK_TIME_LIMIT;
         static const float MAX_UNSTUCK_SPEED;
         static const float MIN_UNSTUCK_DIST;
+        static const float FULL_ACCEL_MARGIN;
 
         /* track variables */
         tTrack* track;
