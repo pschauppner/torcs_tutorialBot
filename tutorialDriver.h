@@ -45,6 +45,7 @@ class TutorialDriver {
     private:
         /* utility functions */
         void initCA();
+        void initCW();
         bool isStuck();
         void update(tSituation *s);
         float getAllowedSpeed(tTrackSeg* segment);
@@ -63,6 +64,7 @@ class TutorialDriver {
         int MAX_UNSTUCK_COUNT;
         int INDEX;
         float CA;
+        float CW;
         float CARMASS;
         tCarElt* car;
 

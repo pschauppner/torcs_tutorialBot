@@ -62,12 +62,22 @@ void TutorialDriver::initCA()
     CA = h*cl + 4.0*wingca;
 }
 
+void TutorialDriver::initCW()
+{
+    float cx = GfParmGetNum(car->_carHandle, SECT_AERODYNAMICS,
+                            PRM_CX, (char*) NULL, 0.0);
+    float frontarea = GfParmGetNum(car->_carHandle, SECT_AERODYNAMICS,
+                                   PRM_FRNTAREA, (char*) NULL, 0.0);
+    CW = 0.645*cx*frontarea;
+}
+
 /* Start a new race. */
 void TutorialDriver::newRace(tCarElt* car, tSituation *s)
 {
     this->car = car;
     CARMASS = GfParmGetNum(car->_carHandle, SECT_CAR, PRM_MASS, NULL, 1000);
     initCA();
+    initCW();
     MAX_UNSTUCK_COUNT = int(UNSTUCK_TIME_LIMIT/RCM_MAX_DT_ROBOTS);
     stuckCounter = 0;
 }
@@ -177,7 +187,7 @@ float TutorialDriver::getBrake()
         if (allowedspeed < car->_speed_x)
         {
             float allowedspeedsqr = allowedspeed*allowedspeed;
-            float brakedist = (currentspeedsqr - allowedspeedsqr) / (2.0*mu*G);
+            float brakedist = mass * (currentspeedsqr - allowedspeedsqr) / (2.0*(mu*G*mass + allowedspeedsqr*(CA*mu + CW)));
             if(brakedist > lookaheaddist)
                 return 1;
         }
