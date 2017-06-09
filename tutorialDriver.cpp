@@ -150,8 +150,17 @@ float TutorialDriver::getAllowedSpeed(tTrackSeg* segment)
 {
     if(segment->type == TR_STR)
         return 1000000;
+    float arc = 0.0;
+    tTrackSeg* s = segment;
+    while(s->type == segment->type && arc < PI / 2.0)
+    {
+        arc += s->arc;
+        s = s->next;
+    }
+    arc /= PI/2.0;
     float mu = segment->surface->kFriction;
-    return sqrt((mu * G * segment->radius) /  (1.0 - MIN(1.0,segment->radius * CA * mu / mass)));
+    float r_eff = (segment->radius + segment->width/2.0) / sqrt(arc);
+    return sqrt((mu * G * r_eff) /  (1.0 - MIN(1.0,r_eff * CA * mu / mass)));
 }
 
 float TutorialDriver::getDistToSegEnd()
