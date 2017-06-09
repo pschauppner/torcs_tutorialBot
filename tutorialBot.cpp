@@ -40,7 +40,7 @@ static void endrace(int index, tCarElt *car, tSituation *s);
 static void shutdown(int index);
 static int  InitFuncPt(int index, void *pt);
 
-
+static int stuck = 0;
 /*
  * Module entry point
  */
@@ -89,6 +89,23 @@ newrace(int index, tCarElt* car, tSituation *s)
 {
 }
 
+bool isStuck(tCarElt* car)
+{
+    float angle = RtTrackSideTgAngleL(&(car->_trkPos)) - car->_yaw;
+    NORM_PI_PI(angle);
+    // angle smaller than 30 degrees?
+    if (fabs(angle) < 30.0/180.0*PI) {
+        stuck = 0;
+        return false;
+    }
+    if (stuck < 100) {
+        stuck++;
+        return false;
+    } else {
+        return true;
+    }
+}
+
 /* Drive during race. */
 static void
 drive(int index, tCarElt* car, tSituation *s)
@@ -102,8 +119,16 @@ drive(int index, tCarElt* car, tSituation *s)
     angle -= SC*car->_trkPos.toMiddle/car->_trkPos.seg->width;
 
     // set up the values to return
-    car->ctrl.steer = angle / car->_steerLock;
-    car->ctrl.gear = 1; // first gear
+    if(isStuck(car))
+    {
+        car->ctrl.steer = -angle / car->_steerLock;
+        car->ctrl.gear = -1; // first gear
+    }
+    else
+    {
+        car->ctrl.steer = angle / car->_steerLock;
+        car->ctrl.gear = 3; // first gear
+    }
     car->ctrl.accelCmd = 0.3; // 30% accelerator pedal
     car->ctrl.brakeCmd = 0.0; // no brakes
 }
