@@ -30,6 +30,8 @@ const float TutorialDriver::ABS_MINSPEED = 3.0;
 const float TutorialDriver::ABS_SLIP = .9;
 const float TutorialDriver::TCL_MINSPEED = 3.0;
 const float TutorialDriver::TCL_SLIP = .9;
+const float TutorialDriver::LOOKAHEAD_CONST = 17.0;
+const float TutorialDriver::LOOKAHEAD_FACTOR = 0.33;
 
 TutorialDriver::TutorialDriver(int index)
 {
@@ -98,13 +100,10 @@ void TutorialDriver::drive(tSituation *s)
         car->ctrl.accelCmd = 0.5; // 30% accelerator pedal
         car->ctrl.brakeCmd = 0.0; // no brakes
     } else {
-        float steerangle = trackRelativeYaw - car->_trkPos.toMiddle/car->_trkPos.seg->width;
-
-        car->ctrl.steer = steerangle / car->_steerLock;
+        car->ctrl.steer = getSteer();
         car->ctrl.gear = getGear();
         car->ctrl.brakeCmd = filterABS(getBrake());
         car->ctrl.accelCmd = car->ctrl.brakeCmd == 0.0 ? filterTCL(getAccel()) : 0;
-
     }
 }
 
@@ -247,4 +246,51 @@ float TutorialDriver::filterTCL(float accel)
 float TutorialDriver::filterTCL_RWD()
 {
     return(car->_wheelSpinVel(REAR_RGT) + car->_wheelSpinVel(REAR_LFT)) * car->_wheelRadius(REAR_LFT) / 2.0;
+}
+
+v2d TutorialDriver::getTargetPoint()
+{
+    tTrackSeg *seg = car->_trkPos.seg;
+    float lookahead = LOOKAHEAD_CONST + car->_speed_x*LOOKAHEAD_FACTOR;
+
+    float length = getDistToSegEnd();
+
+    while (length < lookahead) {
+        seg = seg->next;
+        length += seg->length;
+    }
+
+    length = lookahead - length + seg->length;
+    v2d s;
+    s.x = (seg->vertex[TR_SL].x + seg->vertex[TR_SR].x)/2.0;
+    s.y = (seg->vertex[TR_SL].y + seg->vertex[TR_SR].y)/2.0;
+
+    if ( seg->type == TR_STR)
+    {
+        v2d d;
+        d.x = (seg->vertex[TR_EL].x - seg->vertex[TR_SL].x)/seg->length;
+        d.y = (seg->vertex[TR_EL].y - seg->vertex[TR_SL].y)/seg->length;
+        return s + d*length;
+    }
+    else
+    {
+        v2d c;
+        c.x = seg->center.x;
+        c.y = seg->center.y;
+        float arc = length/seg->radius;
+        float arcsign = (seg->type == TR_RGT) ? -1 : 1;
+        arc = arc*arcsign;
+        return s.rotate(c, arc);
+    }
+}
+
+float TutorialDriver::getSteer()
+{
+    float targetAngle;
+    v2d target = getTargetPoint();
+
+    targetAngle = atan2(target.y - car->_pos_Y, target.x - car->_pos_X);
+    targetAngle -= car->_yaw;
+    NORM_PI_PI(targetAngle);
+    return targetAngle / car->_steerLock;
 }

@@ -30,6 +30,8 @@
 #include <robottools.h>
 #include <robot.h>
 
+#include "linalg.h"
+
 class TutorialDriver {
     public:
         TutorialDriver(int index);
@@ -56,6 +58,8 @@ class TutorialDriver {
         float filterABS(float brake);
         float filterTCL(float accel);
         float filterTCL_RWD();
+        v2d getTargetPoint();
+        float getSteer();
 
         /* per robot global data */
         int stuckCounter;
@@ -84,6 +88,8 @@ class TutorialDriver {
         static const float ABS_SLIP;
         static const float TCL_MINSPEED;
         static const float TCL_SLIP;
+        static const float LOOKAHEAD_CONST;
+        static const float LOOKAHEAD_FACTOR;
 
         /* track variables */
         tTrack* track;
