@@ -41,15 +41,16 @@ class TutorialDriver {
         void drive(tCarElt* car, tSituation *s);
         int pitCommand(tCarElt* car, tSituation *s);
         void endRace(tCarElt *car, tSituation *s);
+
     private:
         /* utility functions */
         bool isStuck(tCarElt* car);
         void update(tCarElt* car, tSituation *s);
 
         /* per robot global data */
-        int stuck;
+        int stuckCounter;
         float trackangle;
-        float angle;
+        float trackRelativeYaw;
 
         /* data that should stay constant after first initialization */
         int MAX_UNSTUCK_COUNT;
@@ -58,6 +59,8 @@ class TutorialDriver {
         /* class constants */
         static const float MAX_UNSTUCK_ANGLE;
         static const float UNSTUCK_TIME_LIMIT;
+        static const float MAX_UNSTUCK_SPEED;
+        static const float MIN_UNSTUCK_DIST;
 
         /* track variables */
         tTrack* track;

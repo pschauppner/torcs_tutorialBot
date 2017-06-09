@@ -19,6 +19,8 @@
 
 const float TutorialDriver::MAX_UNSTUCK_ANGLE = 30.0/180.0*PI;  /* [radians] */
 const float TutorialDriver::UNSTUCK_TIME_LIMIT = 2.0;           /* [s] */
+const float TutorialDriver::MAX_UNSTUCK_SPEED = 5.0;
+const float TutorialDriver::MIN_UNSTUCK_DIST = 3.0;
 
 TutorialDriver::TutorialDriver(int index)
 {
@@ -37,7 +39,7 @@ void TutorialDriver::initTrack(tTrack* t, void *carHandle,
 void TutorialDriver::newRace(tCarElt* car, tSituation *s)
 {
     MAX_UNSTUCK_COUNT = int(UNSTUCK_TIME_LIMIT/RCM_MAX_DT_ROBOTS);
-    stuck = 0;
+    stuckCounter = 0;
 }
 
 void TutorialDriver::drive(tCarElt* car, tSituation *s)
@@ -47,12 +49,12 @@ void TutorialDriver::drive(tCarElt* car, tSituation *s)
     memset(&car->ctrl, 0, sizeof(tCarCtrl));
 
     if (isStuck(car)) {
-        car->ctrl.steer = -angle / car->_steerLock;
+        car->ctrl.steer = -trackRelativeYaw / car->_steerLock;
         car->ctrl.gear = -1; // reverse gear
-        car->ctrl.accelCmd = 0.3; // 30% accelerator pedal
+        car->ctrl.accelCmd = 0.5; // 30% accelerator pedal
         car->ctrl.brakeCmd = 0.0; // no brakes
     } else {
-        float steerangle = angle - car->_trkPos.toMiddle/car->_trkPos.seg->width;
+        float steerangle = trackRelativeYaw - car->_trkPos.toMiddle/car->_trkPos.seg->width;
 
         car->ctrl.steer = steerangle / car->_steerLock;
         car->ctrl.gear = 1; // first gear
@@ -76,21 +78,25 @@ void TutorialDriver::endRace(tCarElt *car, tSituation *s)
 void TutorialDriver::update(tCarElt* car, tSituation *s)
 {
     trackangle = RtTrackSideTgAngleL(&(car->_trkPos));
-    angle = trackangle - car->_yaw;
-    NORM_PI_PI(angle);
+    trackRelativeYaw = trackangle - car->_yaw;
+    NORM_PI_PI(trackRelativeYaw);
 }
 
 /* Check if I'm stuck */
 bool TutorialDriver::isStuck(tCarElt* car)
 {
-    if (fabs(angle) < MAX_UNSTUCK_ANGLE) {
-        stuck = 0;
-        return false;
+    if (fabs(trackRelativeYaw) > MAX_UNSTUCK_ANGLE &&
+        car->_speed_x < MAX_UNSTUCK_SPEED &&
+        fabs(car->_trkPos.toMiddle) > MIN_UNSTUCK_DIST) {
+        if(stuckCounter > MAX_UNSTUCK_COUNT && car->_trkPos.toMiddle * trackRelativeYaw < 0)
+            return true;
+        else{
+            stuckCounter++;
+            return false;
+        }
     }
-    if (stuck < MAX_UNSTUCK_COUNT) {
-        stuck++;
+    else {
+        stuckCounter = 0;
         return false;
-    } else {
-        return true;
     }
 }
