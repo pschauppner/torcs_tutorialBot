@@ -28,6 +28,8 @@ const float TutorialDriver::SHIFT = 0.9;
 const float TutorialDriver::SHIFT_MARGIN = 4.0;
 const float TutorialDriver::ABS_MINSPEED = 3.0;
 const float TutorialDriver::ABS_SLIP = .9;
+const float TutorialDriver::TCL_MINSPEED = 3.0;
+const float TutorialDriver::TCL_SLIP = .9;
 
 TutorialDriver::TutorialDriver(int index)
 {
@@ -101,7 +103,7 @@ void TutorialDriver::drive(tSituation *s)
         car->ctrl.steer = steerangle / car->_steerLock;
         car->ctrl.gear = getGear();
         car->ctrl.brakeCmd = filterABS(getBrake());
-        car->ctrl.accelCmd = car->ctrl.brakeCmd == 0.0 ? getAccel() : 0;
+        car->ctrl.accelCmd = car->ctrl.brakeCmd == 0.0 ? filterTCL(getAccel()) : 0;
 
     }
 }
@@ -230,4 +232,19 @@ float TutorialDriver::filterABS(float brake)
     if(slip < ABS_SLIP)
         return brake * slip;
     return brake;
+}
+
+float TutorialDriver::filterTCL(float accel)
+{
+    if(car->_speed_x < TCL_MINSPEED)
+        return accel;
+    float slip = car->_speed_x / filterTCL_RWD();
+    if(slip < TCL_SLIP)
+        return 0;
+    return accel;
+}
+
+float TutorialDriver::filterTCL_RWD()
+{
+    return(car->_wheelSpinVel(REAR_RGT) + car->_wheelSpinVel(REAR_LFT)) * car->_wheelRadius(REAR_LFT) / 2.0;
 }

@@ -55,6 +55,7 @@ class TutorialDriver {
         float getGear();
         float filterABS(float brake);
         float filterTCL(float accel);
+        float filterTCL_RWD();
 
         /* per robot global data */
         int stuckCounter;
