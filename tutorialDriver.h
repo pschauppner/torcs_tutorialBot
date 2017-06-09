@@ -60,6 +60,7 @@ class TutorialDriver {
         float filterTCL_RWD();
         v2d getTargetPoint();
         float getSteer();
+        float filterTRK(float accel);
 
         /* per robot global data */
         int stuckCounter;
@@ -90,6 +91,7 @@ class TutorialDriver {
         static const float TCL_SLIP;
         static const float LOOKAHEAD_CONST;
         static const float LOOKAHEAD_FACTOR;
+        static const float WIDTHDIV;
 
         /* track variables */
         tTrack* track;

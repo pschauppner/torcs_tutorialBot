@@ -32,6 +32,7 @@ const float TutorialDriver::TCL_MINSPEED = 3.0;
 const float TutorialDriver::TCL_SLIP = .9;
 const float TutorialDriver::LOOKAHEAD_CONST = 17.0;
 const float TutorialDriver::LOOKAHEAD_FACTOR = 0.33;
+const float TutorialDriver::WIDTHDIV = 4.0;
 
 TutorialDriver::TutorialDriver(int index)
 {
@@ -103,7 +104,7 @@ void TutorialDriver::drive(tSituation *s)
         car->ctrl.steer = getSteer();
         car->ctrl.gear = getGear();
         car->ctrl.brakeCmd = filterABS(getBrake());
-        car->ctrl.accelCmd = car->ctrl.brakeCmd == 0.0 ? filterTCL(getAccel()) : 0;
+        car->ctrl.accelCmd = car->ctrl.brakeCmd == 0.0 ? filterTCL(filterTRK(getAccel())) : 0;
     }
 }
 
@@ -302,4 +303,35 @@ float TutorialDriver::getSteer()
     targetAngle -= car->_yaw;
     NORM_PI_PI(targetAngle);
     return targetAngle / car->_steerLock;
+}
+
+float TutorialDriver::filterTRK(float accel)
+{
+    tTrackSeg* seg = car->_trkPos.seg;
+    if(car->_speed_x < MAX_UNSTUCK_SPEED)
+        return accel;
+    if(seg->type == TR_STR)
+    {
+        float tm = fabs(car->_trkPos.toMiddle);
+        float w = seg->width/WIDTHDIV;
+        if(tm > w)
+            return 0.0;
+        else
+            return accel;
+    }
+    else
+    {
+        float sign = (seg->type == TR_RGT ? -1 : 1);
+        if(car->_trkPos.toMiddle * sign > 0.0)
+            return accel;
+        else
+        {
+            float tm = fabs(car->_trkPos.toMiddle);
+            float w = seg->width/WIDTHDIV;
+            if(tm > w)
+                return 0.0;
+            else
+                return accel;
+        }
+    }
 }
