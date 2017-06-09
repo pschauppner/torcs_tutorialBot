@@ -53,6 +53,8 @@ class TutorialDriver {
         float getAccel();
         float getBrake();
         float getGear();
+        float filterABS(float brake);
+        float filterTCL(float accel);
 
         /* per robot global data */
         int stuckCounter;
@@ -77,6 +79,10 @@ class TutorialDriver {
         static const float FULL_ACCEL_MARGIN;
         static const float SHIFT;
         static const float SHIFT_MARGIN;
+        static const float ABS_MINSPEED;
+        static const float ABS_SLIP;
+        static const float TCL_MINSPEED;
+        static const float TCL_SLIP;
 
         /* track variables */
         tTrack* track;
