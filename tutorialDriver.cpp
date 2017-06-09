@@ -40,20 +40,45 @@ void TutorialDriver::initTrack(tTrack* t, void *carHandle,
     *carParmHandle = NULL;
 }
 
+void TutorialDriver::initCA()
+{
+    char *WheelSect[4] = {SECT_FRNTRGTWHEEL, SECT_FRNTLFTWHEEL,
+                          SECT_REARRGTWHEEL, SECT_REARLFTWHEEL};
+    float rearwingarea = GfParmGetNum(car->_carHandle, SECT_REARWING,
+                                       PRM_WINGAREA, (char*) NULL, 0.0);
+    float rearwingangle = GfParmGetNum(car->_carHandle, SECT_REARWING,
+                                        PRM_WINGANGLE, (char*) NULL, 0.0);
+    float wingca = 1.23*rearwingarea*sin(rearwingangle);
+    float cl = GfParmGetNum(car->_carHandle, SECT_AERODYNAMICS,
+                             PRM_FCL, (char*) NULL, 0.0) +
+                GfParmGetNum(car->_carHandle, SECT_AERODYNAMICS,
+                             PRM_RCL, (char*) NULL, 0.0);
+    float h = 0.0;
+    int i;
+    for (i = 0; i < 4; i++)
+        h += GfParmGetNum(car->_carHandle, WheelSect[i],
+                          PRM_RIDEHEIGHT, (char*) NULL, 0.20);
+    h*= 1.5; h = h*h; h = h*h; h = 2.0 * exp(-3.0*h);
+    CA = h*cl + 4.0*wingca;
+}
+
 /* Start a new race. */
 void TutorialDriver::newRace(tCarElt* car, tSituation *s)
 {
+    this->car = car;
+    CARMASS = GfParmGetNum(car->_carHandle, SECT_CAR, PRM_MASS, NULL, 1000);
+    initCA();
     MAX_UNSTUCK_COUNT = int(UNSTUCK_TIME_LIMIT/RCM_MAX_DT_ROBOTS);
     stuckCounter = 0;
 }
 
-void TutorialDriver::drive(tCarElt* car, tSituation *s)
+void TutorialDriver::drive(tSituation *s)
 {
-    update(car, s);
+    update(s);
 
     memset(&car->ctrl, 0, sizeof(tCarCtrl));
 
-    if (isStuck(car)) {
+    if (isStuck()) {
         car->ctrl.steer = -trackRelativeYaw / car->_steerLock;
         car->ctrl.gear = -1; // reverse gear
         car->ctrl.accelCmd = 0.5; // 30% accelerator pedal
@@ -62,34 +87,35 @@ void TutorialDriver::drive(tCarElt* car, tSituation *s)
         float steerangle = trackRelativeYaw - car->_trkPos.toMiddle/car->_trkPos.seg->width;
 
         car->ctrl.steer = steerangle / car->_steerLock;
-        car->ctrl.gear = getGear(car);
-        car->ctrl.brakeCmd = getBrake(car);
-        car->ctrl.accelCmd = car->ctrl.brakeCmd == 0.0 ? getAccel(car) : 0;
+        car->ctrl.gear = getGear();
+        car->ctrl.brakeCmd = getBrake();
+        car->ctrl.accelCmd = car->ctrl.brakeCmd == 0.0 ? getAccel() : 0;
 
     }
 }
 
 /* Set pitstop commands. */
-int TutorialDriver::pitCommand(tCarElt* car, tSituation *s)
+int TutorialDriver::pitCommand(tSituation *s)
 {
     return ROB_PIT_IM; /* return immediately */
 }
 
 /* End of the current race */
-void TutorialDriver::endRace(tCarElt *car, tSituation *s)
+void TutorialDriver::endRace(tSituation *s)
 {
 }
 
 /* Update my private data every timestep */
-void TutorialDriver::update(tCarElt* car, tSituation *s)
+void TutorialDriver::update(tSituation *s)
 {
     trackangle = RtTrackSideTgAngleL(&(car->_trkPos));
     trackRelativeYaw = trackangle - car->_yaw;
     NORM_PI_PI(trackRelativeYaw);
+    mass = CARMASS + car->_fuel;
 }
 
 /* Check if I'm stuck */
-bool TutorialDriver::isStuck(tCarElt* car)
+bool TutorialDriver::isStuck()
 {
     if (fabs(trackRelativeYaw) > MAX_UNSTUCK_ANGLE &&
         car->_speed_x < MAX_UNSTUCK_SPEED &&
@@ -112,17 +138,17 @@ float TutorialDriver::getAllowedSpeed(tTrackSeg* segment)
     if(segment->type == TR_STR)
         return 1000000;
     float mu = segment->surface->kFriction;
-    return sqrt(mu * G * segment->radius);
+    return sqrt((mu * G * segment->radius) /  (1.0 - MIN(1.0,segment->radius * CA * mu / mass)));
 }
 
-float TutorialDriver::getDistToSegEnd(tCarElt* car)
+float TutorialDriver::getDistToSegEnd()
 {
     if(car->_trkPos.seg->type == TR_STR)
         return car->_trkPos.seg->length - car->_trkPos.toStart;
     return (car->_trkPos.seg->arc - car->_trkPos.toStart) * car->_trkPos.seg->radius;
 }
 
-float TutorialDriver::getAccel(tCarElt* car)
+float TutorialDriver::getAccel()
 {
     float allowedspeed = getAllowedSpeed(car->_trkPos.seg);
     float gr = car->_gearRatio[car->_gear + car->_gearOffset];
@@ -134,14 +160,14 @@ float TutorialDriver::getAccel(tCarElt* car)
     }
 }
 
-float TutorialDriver::getBrake(tCarElt* car)
+float TutorialDriver::getBrake()
 {
     tTrackSeg *segptr = car->_trkPos.seg;
     float currentspeedsqr = car->_speed_x*car->_speed_x;
     float mu = segptr->surface->kFriction;
     float maxlookaheaddist = currentspeedsqr/(2.0*mu*G);
 
-    float lookaheaddist = getDistToSegEnd(car);
+    float lookaheaddist = getDistToSegEnd();
     float allowedspeed = getAllowedSpeed(segptr);
     if (allowedspeed < car->_speed_x)
         return 1.0;
@@ -161,7 +187,7 @@ float TutorialDriver::getBrake(tCarElt* car)
     return 0;
 }
 
-float TutorialDriver::getGear(tCarElt* car)
+float TutorialDriver::getGear()
 {
     if(car->_gear <= 0)
         return 1;

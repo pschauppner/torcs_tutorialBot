@@ -99,20 +99,20 @@ newrace(int index, tCarElt* car, tSituation *s)
 static void
 drive(int index, tCarElt* car, tSituation *s)
 {
-    driver->drive(car, s);
+    driver->drive(s);
 }
 
 static int
 pitcmd(int index, tCarElt* car, tSituation* s)
 {
-    driver->pitCommand(car, s);
+    driver->pitCommand(s);
 }
 
 /* End of the current race */
 static void
 endrace(int index, tCarElt *car, tSituation *s)
 {
-    driver->endRace(car, s);
+    driver->endRace(s);
 }
 
 /* Called before the module is unloaded */
