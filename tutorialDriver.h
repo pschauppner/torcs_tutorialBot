@@ -49,6 +49,7 @@ class TutorialDriver {
         float getAllowedSpeed(tTrackSeg* segment);
         float getDistToSegEnd(tCarElt* car);
         float getAccel(tCarElt* car);
+        float getBrake(tCarElt* car);
 
         /* per robot global data */
         int stuckCounter;

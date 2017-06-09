@@ -60,9 +60,10 @@ void TutorialDriver::drive(tCarElt* car, tSituation *s)
         float steerangle = trackRelativeYaw - car->_trkPos.toMiddle/car->_trkPos.seg->width;
 
         car->ctrl.steer = steerangle / car->_steerLock;
-        car->ctrl.gear = 1; // first gear
-        car->ctrl.accelCmd = getAccel(car); // 30% accelerator pedal
-        car->ctrl.brakeCmd = 0.0; // no brakes
+        car->ctrl.gear = 4; // first gear
+        car->ctrl.brakeCmd = getBrake(car);
+        car->ctrl.accelCmd = car->ctrl.brakeCmd == 0.0 ? getAccel(car) : 0;
+
     }
 }
 
@@ -129,4 +130,31 @@ float TutorialDriver::getAccel(tCarElt* car)
     } else {
         return allowedspeed/car->_wheelRadius(REAR_RGT)*gr /rm;
     }
+}
+
+float TutorialDriver::getBrake(tCarElt* car)
+{
+    tTrackSeg *segptr = car->_trkPos.seg;
+    float currentspeedsqr = car->_speed_x*car->_speed_x;
+    float mu = segptr->surface->kFriction;
+    float maxlookaheaddist = currentspeedsqr/(2.0*mu*G);
+
+    float lookaheaddist = getDistToSegEnd(car);
+    float allowedspeed = getAllowedSpeed(segptr);
+    if (allowedspeed < car->_speed_x)
+        return 1.0;
+    segptr = segptr->next;
+    while (lookaheaddist < maxlookaheaddist) {
+        allowedspeed = getAllowedSpeed(segptr);
+        if (allowedspeed < car->_speed_x)
+        {
+            float allowedspeedsqr = allowedspeed*allowedspeed;
+            float brakedist = (currentspeedsqr - allowedspeedsqr) / (2.0*mu*G);
+            if(brakedist > lookaheaddist)
+                return 1;
+        }
+        lookaheaddist += segptr->length;
+        segptr = segptr->next;
+    }
+    return 0;
 }
