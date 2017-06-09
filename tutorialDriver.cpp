@@ -24,6 +24,8 @@ const float TutorialDriver::UNSTUCK_TIME_LIMIT = 2.0;           /* [s] */
 const float TutorialDriver::MAX_UNSTUCK_SPEED = 5.0;
 const float TutorialDriver::MIN_UNSTUCK_DIST = 3.0;
 const float TutorialDriver::FULL_ACCEL_MARGIN = 1.0;
+const float TutorialDriver::SHIFT = 0.9;
+const float TutorialDriver::SHIFT_MARGIN = 4.0;
 
 TutorialDriver::TutorialDriver(int index)
 {
@@ -60,7 +62,7 @@ void TutorialDriver::drive(tCarElt* car, tSituation *s)
         float steerangle = trackRelativeYaw - car->_trkPos.toMiddle/car->_trkPos.seg->width;
 
         car->ctrl.steer = steerangle / car->_steerLock;
-        car->ctrl.gear = 4; // first gear
+        car->ctrl.gear = getGear(car);
         car->ctrl.brakeCmd = getBrake(car);
         car->ctrl.accelCmd = car->ctrl.brakeCmd == 0.0 ? getAccel(car) : 0;
 
@@ -157,4 +159,23 @@ float TutorialDriver::getBrake(tCarElt* car)
         segptr = segptr->next;
     }
     return 0;
+}
+
+float TutorialDriver::getGear(tCarElt* car)
+{
+    if(car->_gear <= 0)
+        return 1;
+    float gr_up = car->_gearRatio[car->_gear + car->_gearOffset];
+    float omega = car->_enginerpmRedLine / gr_up;
+    float wr = car->_wheelRadius(2);
+    if(omega * wr * SHIFT < car->_speed_x)
+        return car->_gear + 1;
+    else
+    {
+        float gr_down = car->_gearRatio[car->_gear + car->_gearOffset -1];
+        omega = car->_enginerpmRedLine / gr_down;
+        if(car->_gear > 1 && omega * wr * SHIFT > car->_speed_x + SHIFT_MARGIN)
+            return car->_gear - 1;
+    }
+    return car->_gear;
 }

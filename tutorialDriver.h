@@ -50,6 +50,7 @@ class TutorialDriver {
         float getDistToSegEnd(tCarElt* car);
         float getAccel(tCarElt* car);
         float getBrake(tCarElt* car);
+        float getGear(tCarElt* car);
 
         /* per robot global data */
         int stuckCounter;
@@ -67,6 +68,8 @@ class TutorialDriver {
         static const float MAX_UNSTUCK_SPEED;
         static const float MIN_UNSTUCK_DIST;
         static const float FULL_ACCEL_MARGIN;
+        static const float SHIFT;
+        static const float SHIFT_MARGIN;
 
         /* track variables */
         tTrack* track;
