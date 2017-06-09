@@ -16,11 +16,11 @@
 ROBOT       = tutorialBot
 MODULE      = ${ROBOT}.so
 MODULEDIR   = drivers/${ROBOT}
-SOURCES     = ${ROBOT}.cpp
+SOURCES     = ${ROBOT}.cpp tutorialDriver.cpp
 
 SHIPDIR     = drivers/${ROBOT}
 SHIP        = ${ROBOT}.xml car1-stock1.rgb logo.rgb
-SHIPSUBDIRS = 
+SHIPSUBDIRS =
 
 PKGSUBDIRS  = ${SHIPSUBDIRS}
 src-robots-tutorialBot_PKGFILES = $(shell find * -maxdepth 0 -type f -print)
